@@ -26,14 +26,6 @@
 </template>
 
 <script>
-import {
-  CreateMultipartUploadCommand,
-  UploadPartCommand,
-  CompleteMultipartUploadCommand,
-  AbortMultipartUploadCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-
 export default {
 
     mixins: [Fieldtype],
