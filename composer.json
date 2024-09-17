@@ -1,0 +1,37 @@
+{
+    "name": "tv2regionerne/statamic-large-assets",
+    "autoload": {
+        "psr-4": {
+            "Tv2regionerne\\StatamicLargeAssets\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tv2regionerne\\StatamicLargeAssets\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "statamic/cms": "^5.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Statamic Large Assets",
+            "description": "Statamic Large Assets addon"
+        },
+        "laravel": {
+            "providers": [
+                "Tv2regionerne\\StatamicLargeAssets\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
