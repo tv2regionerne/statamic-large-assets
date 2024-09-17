@@ -11,7 +11,8 @@
         }
     },
     "require": {
-        "statamic/cms": "^5.0"
+        "statamic/cms": "^5.0",
+        "aws/aws-sdk-php": "^3.321"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0"

@@ -15,43 +15,45 @@ class UploadController extends CpController
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
-        $path = $request->path;
-        $size = $request->size;
-        $expiry = now()->addMinutes(20);
-
-        $partSize = 5 << 20; // 5mb
-        $partCount = ceil($size / $partSize);
+        $key = $request->key;
 
         $uploadId = $client->createMultipartUpload([
             'Bucket' => $bucket,
-            'Key' => $request->path,
+            'Key' => $key,
         ])->get('UploadId');
 
-        $parts = [];
-        for ($i = 0; $i < $partCount; $i++) {
-            $number = $i + 1;
-            $command = $client->getCommand('UploadPart', [
-                'Bucket' => $bucket,
-                'Key' => $path,
-                'UploadId' => $uploadId,
-                'PartNumber' => $number,
-            ]);
-            $url = (string) $client
-                ->createPresignedRequest($command, $expiry)
-                ->getUri();
-            $start = $i * $partSize;
-            $end = min($start + $partSize, $size);
-            $parts[] = [
-                'number' => $number,
-                'url' => $url,
-                'start' => $start,
-                'end' => $end,
-            ];
-        }
+        return response()->json([
+            'key' => $key,
+            'uploadId' => $uploadId,
+        ]);
+    }
+
+    public function signPart(Request $request)
+    {
+        $container = $request->container;
+        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $client = $disk->getClient();
+        $bucket = $disk->getConfig()['bucket'];
+
+        $key = $request->key;
+        $uploadId = $request->uploadId;
+        $partNumber = $request->partNumber;
+
+        $expires = now()->addMinutes(10);
+
+        $command = $client->getCommand('UploadPart', [
+            'Bucket' => $bucket,
+            'Key' => $key,
+            'UploadId' => $uploadId,
+            'PartNumber' => $partNumber,
+        ]);
+        $url = (string) $client
+            ->createPresignedRequest($command, $expires)
+            ->getUri();
 
         return response()->json([
-            'uploadId' => $uploadId,
-            'parts' => $parts,
+            'url' => $url,
+            'expires' => $expires,
         ]);
     }
 
@@ -62,48 +64,61 @@ class UploadController extends CpController
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
-        $path = $request->path;
+        $key = $request->key;
         $uploadId = $request->uploadId;
         $parts = $request->parts;
 
-        $result = $client->completeMultipartUpload([
+        $location = $client->completeMultipartUpload([
             'Bucket' => $bucket,
-            'Key' => $path,
+            'Key' => $key,
             'UploadId' => $uploadId,
             'MultipartUpload' => [
-                'Parts' => collect($parts)->map(fn ($part) => [
-                    'ETag' => $part['eTag'],
-                    'PartNumber' => $part['number'],
-                ])->all(),
+                'Parts' => $parts,
             ],
-        ]);
+        ])->get('Location');
 
         return response()->json([
-            'success' => true,
+            'location' => $location,
         ]);
     }
+
+    public function listParts(Request $request)
+    {
+        $container = $request->container;
+        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $client = $disk->getClient();
+        $bucket = $disk->getConfig()['bucket'];
+
+        $key = $request->key;
+        $uploadId = $request->uploadId;
+
+        $parts = $client->listParts([
+            'Bucket' => $bucket,
+            'Key' => $key,
+            'UploadId' => $uploadId,
+        ])->get('Parts');
+
+        return response()->json([
+            'parts' => $parts,
+        ]);
+    }
+
+    public function abort(Request $request)
+    {
+        $container = $request->container;
+        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $client = $disk->getClient();
+        $bucket = $disk->getConfig()['bucket'];
+
+        $key = $request->key;
+        $uploadId = $request->uploadId;
+
+        $client->abortMultipartUpload([
+            'Bucket' => $bucket,
+            'Key' => $key,
+            'UploadId' => $uploadId,
+        ]);
+
+        return response()->json();
+    }
 }
-
-// $result = $client->putBucketCors([
-//     'Bucket' => $bucket, // REQUIRED
-//     'CORSConfiguration' => [ // REQUIRED
-//         'CORSRules' => [ // REQUIRED
-//             [
-//                 'AllowedHeaders' => ['*'],
-//                 'AllowedMethods' => ['GET', 'HEAD', 'PUT', 'POST', 'DELETE'], // REQUIRED
-//                 'AllowedOrigins' => ['*'], // REQUIRED
-//                 'MaxAgeSeconds' => 3000,
-//                 'ExposeHeaders' => [
-//                     'ETag',
-//                 ],
-//             ],
-//         ],
-//     ],
-// ]);
-// dd($result);
-
-// $corsConfig = $client->getBucketCors([
-//     'Bucket' => $bucket,
-// ]);
-
-// dd($bucket, $corsConfig);

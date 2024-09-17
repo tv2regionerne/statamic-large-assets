@@ -14,6 +14,10 @@ class ServiceProvider extends AddonServiceProvider
         Fieldtypes\LargeAssets::class,
     ];
 
+    protected $commands = [
+        Console\Commands\Cors::class,
+    ];
+
     protected $vite = [
         'input' => [
             'resources/js/addon.js',
