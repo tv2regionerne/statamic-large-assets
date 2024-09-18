@@ -5,14 +5,13 @@
         "build": "vite build"
     },
     "devDependencies": {
+        "@shopify/draggable": "^1.1.3",
         "@uppy/aws-s3": "^4.1.0",
         "@uppy/core": "^4.2.0",
-        "@uppy/status-bar": "^4.0.3",
+        "@uppy/tus": "^4.1.0",
         "@vitejs/plugin-vue2": "^2.2.0",
         "laravel-vite-plugin": "^0.7.2",
+        "uniqid": "^5.4.0",
         "vite": "^4.0.0"
-    },
-    "dependencies": {
-        "@uppy/drag-drop": "^4.0.2"
     }
 }

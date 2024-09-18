@@ -12,7 +12,8 @@
     },
     "require": {
         "statamic/cms": "^5.0",
-        "aws/aws-sdk-php": "^3.321"
+        "aws/aws-sdk-php": "^3.321",
+        "kalynasolutions/laravel-tus": "^1.2"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0"

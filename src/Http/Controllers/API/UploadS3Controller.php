@@ -3,10 +3,12 @@
 namespace Tv2regionerne\StatamicLargeAssets\Http\Controllers\API;
 
 use Illuminate\Http\Request;
+use Statamic\Facades\Asset;
 use Statamic\Facades\AssetContainer;
 use Statamic\Http\Controllers\CP\CpController;
+use Statamic\Http\Resources\CP\Assets\Asset as AssetResource;
 
-class UploadController extends CpController
+class UploadS3Controller extends CpController
 {
     public function create(Request $request)
     {
@@ -77,8 +79,13 @@ class UploadController extends CpController
             ],
         ])->get('Location');
 
-        return response()->json([
-            'location' => $location,
+        $asset = Asset::find($container.'::'.$key);
+        $asset->save();
+
+        return (new AssetResource($asset))->additional([
+            'data' => [
+                'location' => $location,
+            ],
         ]);
     }
 
@@ -98,9 +105,7 @@ class UploadController extends CpController
             'UploadId' => $uploadId,
         ])->get('Parts');
 
-        return response()->json([
-            'parts' => $parts,
-        ]);
+        return response()->json($parts);
     }
 
     public function abort(Request $request)

@@ -1,9 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\UploadController;
+use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\UploadS3Controller;
+use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\UploadTusController;
 
-Route::post('upload/create', [UploadController::class, 'create']);
-Route::post('upload/sign-part', [UploadController::class, 'signPart']);
-Route::post('upload/complete', [UploadController::class, 'complete']);
-Route::post('upload/abort', [UploadController::class, 'abort']);
+Route::prefix('upload-s3')->group(function () {
+    Route::post('create', [UploadS3Controller::class, 'create']);
+    Route::post('sign-part', [UploadS3Controller::class, 'signPart']);
+    Route::post('complete', [UploadS3Controller::class, 'complete']);
+    Route::post('abort', [UploadS3Controller::class, 'abort']);
+});
+
+Route::prefix('upload-tus')->group(function () {
+    Route::post('complete', [UploadTusController::class, 'complete']);
+});
