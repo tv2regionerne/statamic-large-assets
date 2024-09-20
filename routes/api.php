@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\AssetsController;
 use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\UploadS3Controller;
 use Tv2regionerne\StatamicLargeAssets\Http\Controllers\API\UploadTusController;
 
@@ -14,3 +15,6 @@ Route::prefix('upload-s3')->group(function () {
 Route::prefix('upload-tus')->group(function () {
     Route::post('complete', [UploadTusController::class, 'complete']);
 });
+
+Route::get('assets', [AssetsController::class, 'create']);
+Route::post('assets', [AssetsController::class, 'store']);

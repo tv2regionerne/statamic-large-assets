@@ -3,6 +3,7 @@
 namespace Tv2regionerne\StatamicLargeAssets\Http\Controllers\API;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Statamic\Contracts\Assets\Asset as AssetContract;
 use Statamic\Events\AssetCreated;
 use Statamic\Events\AssetCreating;
@@ -16,11 +17,13 @@ class UploadS3Controller extends CpController
     public function create(Request $request)
     {
         $container = AssetContainer::find($request->container);
+        $folder = $request->folder;
         $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
         $key = $request->key;
+        $key = $folder !== '/' ? "{$folder}/{$key}" : $key;
 
         $uploadId = $client->createMultipartUpload([
             'Bucket' => $bucket,
@@ -144,14 +147,16 @@ class UploadS3Controller extends CpController
 
     protected function saveAsset(AssetContract $asset)
     {
-        // Custom logic to save the asset as it alreday exists so if
-        // we use Asset::save() the wrong events will be dispatched.
+        // Custom logic to save the asset, if we use Asset::save() the
+        // wrong events will be dispatched as the file already exists.
 
         if (AssetCreating::dispatch($asset) === false) {
             return false;
         }
 
         Asset::save($asset);
+
+        Cache::forget($asset->metaCacheKey());
 
         AssetCreated::dispatch($asset);
 

@@ -21,6 +21,8 @@
 
         <Form
             v-if="showForm"
+            :container="container"
+            :file="file"
             @closed="closeForm"
             @saved="saveForm" />
 
@@ -157,10 +159,10 @@ export default {
                 createMultipartUpload: async (file, signal) => {
                     signal?.throwIfAborted();
                     const url = cp_url(`${baseUrl}/create`);
-                    const path = this.path ? `${this.path}/${file.name}` : file.name;
                     const response = await this.$axios.post(url, {
                         container: this.container,
-                        key: path,
+                        folder: this.path,
+                        key: file.name,
                     });
                     return response.data;
                 },
@@ -215,8 +217,8 @@ export default {
             this.$refs.input.click();
         },
 
-        select(event) {
-            Array.from(event.target.files).forEach(file => this.addFile(file));
+        select(e) {
+            this.addFiles(Array.from(e.target.files));
         },
 
         dragenter(e) {
@@ -241,7 +243,15 @@ export default {
             e.stopPropagation();
             e.preventDefault();
             this.dragging = false;
-            Array.from(e.dataTransfer.files).forEach(file => this.addFile(file));
+            this.addFiles(Array.from(e.dataTransfer.files));
+        },
+
+        addFiles(files) {
+            if (this.shouldShowForm) {
+                this.addFile(files[0]);
+            } else {
+                files.forEach(file => this.addFile(file));
+            }
         },
 
         addFile(file) {
@@ -266,9 +276,7 @@ export default {
         },
 
         saveForm(values) {
-            this.values = {
-                title: 'Jack!',
-            };
+            this.values = values;
             this.uppy.addFile(this.file);
             this.showForm = false;
         },

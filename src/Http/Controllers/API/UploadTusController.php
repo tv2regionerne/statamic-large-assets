@@ -16,8 +16,8 @@ class UploadTusController extends CpController
     public function complete(Request $request)
     {
         $container = AssetContainer::find($request->container);
-        $url = $request->uploadUrl;
         $folder = $request->folder;
+        $url = $request->uploadUrl;
         $values = $request->values;
 
         $id = Str::afterlast($url, '/');
@@ -25,7 +25,7 @@ class UploadTusController extends CpController
 
         $file = Tus::storage()->path($tusFile->path);
         $name = $tusFile->metadata['name'];
-        $path = $folder ? "{$folder}/{$name}" : $name;
+        $path = $folder !== '/' ? "{$folder}/{$name}" : $name;
 
         $upload = new UploadedFile($file, $name, null, 0, true);
 
