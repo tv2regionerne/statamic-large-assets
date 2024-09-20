@@ -3,6 +3,9 @@
 namespace Tv2regionerne\StatamicLargeAssets\Http\Controllers\API;
 
 use Illuminate\Http\Request;
+use Statamic\Contracts\Assets\Asset as AssetContract;
+use Statamic\Events\AssetCreated;
+use Statamic\Events\AssetCreating;
 use Statamic\Facades\Asset;
 use Statamic\Facades\AssetContainer;
 use Statamic\Http\Controllers\CP\CpController;
@@ -80,7 +83,9 @@ class UploadS3Controller extends CpController
         ])->get('Location');
 
         $asset = Asset::find($container.'::'.$key);
-        $asset->save();
+        if (! $this->saveAsset($asset)) {
+            abort(500, 'Failed to save asset');
+        }
 
         return (new AssetResource($asset))->additional([
             'data' => [
@@ -125,5 +130,23 @@ class UploadS3Controller extends CpController
         ]);
 
         return response()->json();
+    }
+
+    protected function saveAsset(AssetContract $asset)
+    {
+        // Custom logic to save the asset as it alreday exists so if
+        // we use Asset::save() the wrong events will be dispatched.
+
+        if (AssetCreating::dispatch($asset) === false) {
+            return false;
+        }
+
+        Asset::save($asset);
+
+        AssetCreated::dispatch($asset);
+
+        $asset->syncOriginal();
+
+        return true;
     }
 }

@@ -17,19 +17,21 @@ class UploadTusController extends CpController
     {
         $container = $request->container;
         $url = $request->uploadUrl;
+        $folder = $request->folder;
         $id = Str::afterlast($url, '/');
         $tusFile = TusFile::find($id);
 
         $file = Tus::storage()->path($tusFile->path);
         $name = $tusFile->metadata['name'];
+        $path = $folder ? "{$folder}/{$name}" : $name;
 
         $upload = new UploadedFile($file, $name, null, 0, true);
 
         $asset = AssetContainer::find($container)
-            ->makeAsset($name)
+            ->makeAsset($path)
             ->upload($upload);
 
-        unlink(Tus::storage()->path(Tus::path($id, 'json')));
+        Tus::storage()->delete(Tus::path($id, 'json'));
 
         return (new AssetResource($asset))->additional([
             'data' => [

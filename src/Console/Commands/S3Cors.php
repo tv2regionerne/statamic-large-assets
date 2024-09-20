@@ -5,9 +5,9 @@ namespace Tv2regionerne\StatamicLargeAssets\Console\Commands;
 use Illuminate\Console\Command;
 use Statamic\Facades\AssetContainer;
 
-class Cors extends Command
+class S3Cors extends Command
 {
-    protected $signature = 'large-assets:cors {container}';
+    protected $signature = 'large-assets:s3-cors {container}';
 
     /**
      * Execute the console command.

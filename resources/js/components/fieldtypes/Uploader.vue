@@ -38,18 +38,6 @@ export default {
         }
     },
 
-    computed: {
-
-        extraData() {
-            return {
-                container: this.container,
-                folder: this.path,
-                _token: Statamic.$config.get('csrfToken')
-            };
-        },
-
-    },
-
     mounted() {
         this.$refs.nativeFileField.addEventListener('change', this.addNativeFileFieldSelections);
     },
@@ -97,55 +85,61 @@ export default {
             this.uppy.on('upload-progress', (file, progress) => {
                 this.handleUploadProgress(file.id, progress.bytesUploaded / progress.bytesTotal);
             });
-            this.uppy.on('upload-error', (file, { response }) => {
-                this.handleUploadError(file.id, response.status, response.data);
+            this.uppy.on('upload-error', (file, error) => {
+                this.handleUploadError(file.id, error.response.status, error.response.data);
             });
 
         },
 
         initializeUppyTus() {
 
-            const uploadUrl = 'large-assets/api/upload-tus';
+            const baseUrl = 'large-assets/api/upload-tus';
 
             this.uppy.use(Tus, {
-                endpoint: '/tus',
-                chunkSize: 5 << 20,
+                endpoint: cp_url(`${baseUrl}/endpoint`),
+                chunkSize: Statamic.$config.get('large_assets.tus.chunk_size'),
                 headers: {
                     'X-CSRF-TOKEN': Statamic.$config.get('csrfToken'),
                 },
             });
             
-            this.uppy.on('upload-success', async (file, { uploadURL }) => {
-                const url = cp_url(`${uploadUrl}/complete`);
-                const response = await this.$axios.post(url, {
-                    container: this.container,
-                    uploadUrl: uploadURL,
-                });
-                this.handleUploadSuccess(file.id, response.data);
+            this.uppy.on('upload-success', async (file, data) => {
+                const url = cp_url(`${baseUrl}/complete`);
+                try {
+                    const response = await this.$axios.post(url, {
+                        container: this.container,
+                        folder: this.path,
+                        uploadUrl: data.uploadURL,
+                    });
+                    this.handleUploadSuccess(file.id, response.data);
+                } catch (error) {
+                    this.handleUploadError(file.id, error.response.status, error.response.data);
+                }
             });
 
         },
 
         initializeUppyS3() {
 
-            const uploadUrl = 'large-assets/api/upload-s3';
+            const baseUrl = 'large-assets/api/upload-s3';
 
             this.uppy.use(AwsS3, {
-                chunkSize: 5 << 20,
+                chunkSize: Statamic.$config.get('large_assets.s3.chunk_size'),
                 autoProceed: true,
                 shouldUseMultipart: true,  
                 createMultipartUpload: async (file, signal) => {
                     signal?.throwIfAborted();
-                    const url = cp_url(`${uploadUrl}/create`);
+                    const url = cp_url(`${baseUrl}/create`);
+                    const path = this.path ? `${this.path}/${file.name}` : file.name;
                     const response = await this.$axios.post(url, {
                         container: this.container,
-                        key: file.name,
+                        key: path,
                     });
                     return response.data;
                 },
                 signPart: async (file, { uploadId, key, partNumber, signal }) => {
                     signal?.throwIfAborted();
-                    const url = cp_url(`${uploadUrl}/sign-part`);
+                    const url = cp_url(`${baseUrl}/sign-part`);
                     const response = await this.$axios.post(url, {
                         container: this.container,
                         key: key,
@@ -156,7 +150,7 @@ export default {
                 },
                 completeMultipartUpload: async (file, { key, uploadId, parts }, signal) => {
                     signal?.throwIfAborted()
-                    const url = cp_url(`${uploadUrl}/complete`);
+                    const url = cp_url(`${baseUrl}/complete`);
                     const response = await this.$axios.post(url, {
                         container: this.container,
                         key: key,
@@ -167,7 +161,7 @@ export default {
                 },
                 listParts: async (file, { key, uploadId }, signal) => {
                     signal?.throwIfAborted()
-                    const url = cp_url(`${uploadUrl}/list-parts`);
+                    const url = cp_url(`${baseUrl}/list-parts`);
                     const response = await this.$axios.post(url, {
                         container: this.container,
                         key: key,
@@ -176,7 +170,7 @@ export default {
                     return response.data;
                 },
                 abortMultipartUpload: async (file, { key, uploadId }) => {
-                    const url = cp_url(`${uploadUrl}/abort`);
+                    const url = cp_url(`${baseUrl}/abort`);
                     await this.$axios.post(url, {
                         container: this.container,
                         key: key,
@@ -185,8 +179,8 @@ export default {
                 },
             });
 
-            this.uppy.on('upload-success', (file, { body }) => {
-                this.handleUploadSuccess(file.id, body);
+            this.uppy.on('upload-success', (file, data) => {
+                this.handleUploadSuccess(file.id, data.body);
             });
 
         },
@@ -253,21 +247,13 @@ export default {
             this.uploads.splice(this.findUploadIndex(id), 1);
         },
 
-        handleUploadError(id, status, response) {
+        handleUploadError(id, status, data) {
             const upload = this.findUpload(id);
-            let msg = response?.message;
-            if (! msg) {
-                if (status === 413) {
-                    msg = __('Upload failed. The file is larger than is allowed by your server.');
-                } else {
-                    msg = __('Upload failed. The file might be larger than is allowed by your server.');
-                }
-            } else {
-                if (status === 422) {
-                    msg = Object.values(response.errors)[0][0];
-                }
+            let message = data.message;
+            if (!message) {
+                message = status;
             }
-            upload.errorMessage = msg;
+            upload.errorMessage = message;
             this.$emit('error', upload, this.uploads);
         },
     }
