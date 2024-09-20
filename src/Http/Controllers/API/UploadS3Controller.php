@@ -15,8 +15,8 @@ class UploadS3Controller extends CpController
 {
     public function create(Request $request)
     {
-        $container = $request->container;
-        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $container = AssetContainer::find($request->container);
+        $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
@@ -35,8 +35,8 @@ class UploadS3Controller extends CpController
 
     public function signPart(Request $request)
     {
-        $container = $request->container;
-        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $container = AssetContainer::find($request->container);
+        $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
@@ -64,10 +64,11 @@ class UploadS3Controller extends CpController
 
     public function complete(Request $request)
     {
-        $container = $request->container;
-        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $container = AssetContainer::find($request->container);
+        $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
+        $values = $request->values;
 
         $key = $request->key;
         $uploadId = $request->uploadId;
@@ -82,7 +83,16 @@ class UploadS3Controller extends CpController
             ],
         ])->get('Location');
 
-        $asset = Asset::find($container.'::'.$key);
+        $asset = $container->asset($key);
+        $values = $container
+            ->blueprint()
+            ->fields()
+            ->addValues($values)
+            ->process()
+            ->values()
+            ->each(function ($value, $name) use ($asset) {
+                $asset->set($name, $value);
+            });
         if (! $this->saveAsset($asset)) {
             abort(500, 'Failed to save asset');
         }
@@ -96,8 +106,8 @@ class UploadS3Controller extends CpController
 
     public function listParts(Request $request)
     {
-        $container = $request->container;
-        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $container = AssetContainer::find($request->container);
+        $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 
@@ -115,8 +125,8 @@ class UploadS3Controller extends CpController
 
     public function abort(Request $request)
     {
-        $container = $request->container;
-        $disk = AssetContainer::find($container)->disk()->filesystem();
+        $container = AssetContainer::find($request->container);
+        $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
         $bucket = $disk->getConfig()['bucket'];
 

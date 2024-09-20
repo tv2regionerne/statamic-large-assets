@@ -15,9 +15,11 @@ class UploadTusController extends CpController
 {
     public function complete(Request $request)
     {
-        $container = $request->container;
+        $container = AssetContainer::find($request->container);
         $url = $request->uploadUrl;
         $folder = $request->folder;
+        $values = $request->values;
+
         $id = Str::afterlast($url, '/');
         $tusFile = TusFile::find($id);
 
@@ -27,9 +29,17 @@ class UploadTusController extends CpController
 
         $upload = new UploadedFile($file, $name, null, 0, true);
 
-        $asset = AssetContainer::find($container)
-            ->makeAsset($path)
-            ->upload($upload);
+        $asset = $container->makeAsset($path);
+        $values = $container
+            ->blueprint()
+            ->fields()
+            ->addValues($values)
+            ->process()
+            ->values()
+            ->each(function ($value, $name) use ($asset) {
+                $asset->set($name, $value);
+            });
+        $asset->upload($upload);
 
         Tus::storage()->delete(Tus::path($id, 'json'));
 

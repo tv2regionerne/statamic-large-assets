@@ -11,7 +11,7 @@ export default {
 
     mounted() {
         this.$el.closest('.large_assets-fieldtype').classList.add('assets-fieldtype');
-        this.$refs.uploader.initialize(this.meta.driver);
+        this.$refs.uploader.initialize(this.config, this.meta);
     },
 
 };

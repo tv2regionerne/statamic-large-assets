@@ -1,14 +1,29 @@
 <template>
 
-    <div
-        @dragenter="dragenter"
-        @dragover="dragover"
-        @dragleave="dragleave"
-        @drop="drop">
-        <div :class="{ 'pointer-events-none': dragging }">
-            <input class="hidden" type="file" multiple ref="nativeFileField">
-            <slot :dragging="enabled ? dragging : false"></slot>
+    <div>
+
+        <div
+            v-if="initialized"
+            @dragenter="dragenter"
+            @dragover="dragover"
+            @dragleave="dragleave"
+            @drop="drop">
+            <div :class="{ 'pointer-events-none': dragging }">
+                <input
+                    class="hidden"
+                    type="file"
+                    ref="input"
+                    :multiple="!shouldShowForm"
+                    @input="select">
+                <slot :dragging="enabled ? dragging : false"></slot>
+            </div>
         </div>
+
+        <Form
+            v-if="showForm"
+            @closed="closeForm"
+            @saved="saveForm" />
+
     </div>
 
 </template>
@@ -18,8 +33,13 @@ import { Uppy } from '@uppy/core'
 import AwsS3 from '@uppy/aws-s3'
 import Tus from '@uppy/tus';
 import '@uppy/core/dist/style.min.css';
+import Form from './Form.vue';
 
 export default {
+
+    components: {
+        Form,
+    },
 
     props: {
         enabled: {
@@ -33,17 +53,15 @@ export default {
 
     data() {
         return {
+            initialized: false,
+            config: null,
+            meta: null,
             dragging: false,
             uploads: [],
+            showForm: false,
+            file: null,
+            values: {},
         }
-    },
-
-    mounted() {
-        this.$refs.nativeFileField.addEventListener('change', this.addNativeFileFieldSelections);
-    },
-
-    beforeDestroy() {
-        this.$refs.nativeFileField.removeEventListener('change', this.addNativeFileFieldSelections);
     },
 
     watch: {
@@ -54,19 +72,29 @@ export default {
 
     },
 
+    computed: {
+
+        shouldShowForm() {
+            return this.config.show_form;
+        },
+
+    },
+
     methods: {
 
-        initialize(driver) {
+        initialize(config, meta) {
+            this.config = config;
+            this.meta = meta;
             this.initializeUppy();
-            if (driver === 's3') {
+            if (this.meta.driver === 's3') {
                 this.initializeUppyS3();
             } else {
                 this.initializeUppyTus();
             }
+            this.initialized = true;
         },
 
         initializeUppy() {
-
             this.uppy = new Uppy({
                 id: uniqid(),
                 autoProceed: true,
@@ -88,13 +116,14 @@ export default {
             this.uppy.on('upload-error', (file, error) => {
                 this.handleUploadError(file.id, error.response.status, error.response.data);
             });
-
+            this.uppy.on('complete', () => {
+                this.file = null;
+                this.values = {};
+            });
         },
 
         initializeUppyTus() {
-
             const baseUrl = 'large-assets/api/upload-tus';
-
             this.uppy.use(Tus, {
                 endpoint: cp_url(`${baseUrl}/endpoint`),
                 chunkSize: Statamic.$config.get('large_assets.tus.chunk_size'),
@@ -102,7 +131,7 @@ export default {
                     'X-CSRF-TOKEN': Statamic.$config.get('csrfToken'),
                 },
             });
-            
+    
             this.uppy.on('upload-success', async (file, data) => {
                 const url = cp_url(`${baseUrl}/complete`);
                 try {
@@ -110,19 +139,17 @@ export default {
                         container: this.container,
                         folder: this.path,
                         uploadUrl: data.uploadURL,
+                        values: this.values,
                     });
                     this.handleUploadSuccess(file.id, response.data);
                 } catch (error) {
                     this.handleUploadError(file.id, error.response.status, error.response.data);
                 }
             });
-
         },
 
         initializeUppyS3() {
-
             const baseUrl = 'large-assets/api/upload-s3';
-
             this.uppy.use(AwsS3, {
                 chunkSize: Statamic.$config.get('large_assets.s3.chunk_size'),
                 autoProceed: true,
@@ -156,6 +183,7 @@ export default {
                         key: key,
                         uploadId: uploadId,
                         parts: parts,
+                        values: this.values,
                     });
                     return response.data;
                 },
@@ -178,21 +206,17 @@ export default {
                     });
                 },
             });
-
             this.uppy.on('upload-success', (file, data) => {
                 this.handleUploadSuccess(file.id, data.body);
             });
-
         },
 
         browse() {
-            this.$refs.nativeFileField.click();
+            this.$refs.input.click();
         },
 
-        addNativeFileFieldSelections(e) {
-            for (let i = 0; i < e.target.files.length; i++) {
-                this.addFile(e.target.files[i]);
-            }
+        select(event) {
+            Array.from(event.target.files).forEach(file => this.addFile(file));
         },
 
         dragenter(e) {
@@ -217,17 +241,36 @@ export default {
             e.stopPropagation();
             e.preventDefault();
             this.dragging = false;
-
-            for (let i = 0; i < e.dataTransfer.files.length; i++) {
-                this.addFile(e.dataTransfer.files[i]);
-            }
+            Array.from(e.dataTransfer.files).forEach(file => this.addFile(file));
         },
 
         addFile(file) {
             if (! this.enabled) {
                 return;
             }
-            this.uppy.addFile(file);
+            if (this.shouldShowForm) {
+                this.openForm(file);
+            } else {
+                this.uppy.addFile(file);
+            }
+        },
+
+        openForm(file) {
+            this.file = file;
+            this.showForm = true;
+        },
+
+        closeForm() {
+            this.file = null;
+            this.showForm = false;
+        },
+
+        saveForm(values) {
+            this.values = {
+                title: 'Jack!',
+            };
+            this.uppy.addFile(this.file);
+            this.showForm = false;
         },
 
         findUpload(id) {
