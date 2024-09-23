@@ -161,8 +161,7 @@ export default {
                     const url = cp_url(`${baseUrl}/create`);
                     const response = await this.$axios.post(url, {
                         container: this.container,
-                        folder: this.path,
-                        key: file.name,
+                        key: `${uniqid()}.${file.extension}`,
                     });
                     return response.data;
                 },
@@ -185,6 +184,8 @@ export default {
                         key: key,
                         uploadId: uploadId,
                         parts: parts,
+                        folder: this.path,
+                        name: file.name,
                         values: this.values,
                     });
                     return response.data;
