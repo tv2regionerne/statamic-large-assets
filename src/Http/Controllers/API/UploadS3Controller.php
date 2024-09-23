@@ -19,6 +19,7 @@ class UploadS3Controller extends CpController
     {
         $container = AssetContainer::find($request->container);
         $key = $request->key;
+        $type = $request->type;
 
         $disk = $container->disk()->filesystem();
         $client = $disk->getClient();
@@ -27,6 +28,7 @@ class UploadS3Controller extends CpController
         $uploadId = $client->createMultipartUpload([
             'Bucket' => $bucket,
             'Key' => 'temp/'.$key,
+            'ContentType' => $type,
         ])->get('UploadId');
 
         return response()->json([
@@ -39,6 +41,7 @@ class UploadS3Controller extends CpController
     {
         $container = AssetContainer::find($request->container);
         $key = $request->key;
+        $type = $request->type;
         $uploadId = $request->uploadId;
         $partNumber = $request->partNumber;
 
@@ -51,6 +54,7 @@ class UploadS3Controller extends CpController
         $command = $client->getCommand('UploadPart', [
             'Bucket' => $bucket,
             'Key' => 'temp/'.$key,
+            'ContentType' => $type,
             'UploadId' => $uploadId,
             'PartNumber' => $partNumber,
         ]);

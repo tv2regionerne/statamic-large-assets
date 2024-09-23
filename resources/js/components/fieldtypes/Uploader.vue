@@ -162,6 +162,7 @@ export default {
                     const response = await this.$axios.post(url, {
                         container: this.container,
                         key: `${uniqid()}.${file.extension}`,
+                        type: file.type,
                     });
                     return response.data;
                 },
@@ -171,6 +172,7 @@ export default {
                     const response = await this.$axios.post(url, {
                         container: this.container,
                         key: key,
+                        type: file.type,
                         uploadId: uploadId,
                         partNumber: partNumber,
                     });
