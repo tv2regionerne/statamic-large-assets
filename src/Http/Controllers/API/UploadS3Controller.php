@@ -70,7 +70,6 @@ class UploadS3Controller extends CpController
 
     public function complete(Request $request)
     {
-
         $container = AssetContainer::find($request->container);
         $folder = $request->folder;
         $name = $request->name;
