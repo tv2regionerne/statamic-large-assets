@@ -2,7 +2,7 @@
 
     <modal
         width="600px"
-        @closed="$emit('closed')">
+        @closed="$emit('cancel')">
 
         <div slot-scope="{ close }">
 
@@ -61,11 +61,20 @@ export default {
             values: {},
             meta: {},
             errors: {},
+            escBinding: null,
         };
     },
 
     mounted() {
         this.load();
+    },
+
+    created() {
+        this.escBinding = this.$keys.bind('esc', () => this.$emit('cancel'))
+    },
+
+    beforeDestroy() {
+        this.escBinding.destroy()
     },
 
     methods: {

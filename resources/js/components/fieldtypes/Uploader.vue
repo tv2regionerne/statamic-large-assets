@@ -23,7 +23,7 @@
             v-if="showForm"
             :container="container"
             :file="file"
-            @closed="closeForm"
+            @cancel="closeForm"
             @saved="saveForm" />
 
     </div>
