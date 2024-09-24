@@ -50,12 +50,12 @@ export default {
         },
         container: String,
         path: String,
-        uppy: null,
     },
 
     data() {
         return {
             initialized: false,
+            uppy: null,
             config: null,
             meta: null,
             dragging: false,
@@ -310,7 +310,7 @@ export default {
             upload.errorMessage = message;
             this.$emit('error', upload, this.uploads);
         },
-    }
+    },
 
 }
 </script>
