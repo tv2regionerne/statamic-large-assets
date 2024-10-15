@@ -54,6 +54,10 @@ export default {
         },
         container: String,
         path: String,
+        valuesResolver: {
+            type: Function,
+            default: (file, values) => values
+        },
     },
 
     data() {
@@ -146,7 +150,7 @@ export default {
                         container: this.container,
                         folder: this.path,
                         uploadUrl: data.uploadURL,
-                        values: this.values,
+                        values: this.valuesResolver(file, this.values),
                     });
                     this.handleUploadSuccess(file.id, response.data);
                 } catch (error) {
@@ -193,7 +197,7 @@ export default {
                         parts: parts,
                         folder: this.path,
                         name: file.name,
-                        values: this.values,
+                        values: this.valuesResolver(file, this.values),
                     });
                     return response.data;
                 },
