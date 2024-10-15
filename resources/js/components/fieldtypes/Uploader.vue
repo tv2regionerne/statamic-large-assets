@@ -48,6 +48,10 @@ export default {
             type: Boolean,
             default: () => true
         },
+        clearSuccessful: {
+            type: Boolean,
+            default: () => true
+        },
         container: String,
         path: String,
     },
@@ -108,6 +112,7 @@ export default {
                         basename: file.name,
                         extension: file.extension,
                         percent: 0,
+                        running: true,
                         errorMessage: null,
                     });
                 });
@@ -217,6 +222,9 @@ export default {
         },
 
         browse() {
+            if (! this.enabled) {
+                return;
+            }
             this.$refs.input.click();
         },
 
@@ -298,7 +306,11 @@ export default {
 
         handleUploadSuccess(id, response) {
             this.$emit('upload-complete', response.data);
-            this.uploads.splice(this.findUploadIndex(id), 1);
+            if (this.clearSuccessful) {
+                this.uploads.splice(this.findUploadIndex(id), 1);
+            } else {
+                this.findUpload(id).running = false;
+            }
         },
 
         handleUploadError(id, status, data) {
@@ -307,6 +319,7 @@ export default {
             if (!message) {
                 message = status;
             }
+            upload.running = false;
             upload.errorMessage = message;
             this.$emit('error', upload, this.uploads);
         },
